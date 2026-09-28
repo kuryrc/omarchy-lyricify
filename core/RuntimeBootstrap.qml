@@ -21,6 +21,7 @@ Item {
     property string operation: "status"
     property bool received: false
     property bool purgeQueued: false
+    property string queuedOperation: ""
     readonly property bool ready: path !== ""
 
     signal activated()
@@ -44,6 +45,7 @@ Item {
     }
 
     function purge() {
+        queuedOperation = "";
         if (runner.running) {
             purgeQueued = true;
             runner.running = false;
@@ -53,6 +55,7 @@ Item {
     }
 
     function cancel() {
+        queuedOperation = "";
         runner.running = false;
         publish({
             "status": path ? "ready" : "needsRuntime",
@@ -61,9 +64,16 @@ Item {
     }
 
     function run(op) {
-        if (runner.running)
-            return ;
+        if (runner.running) {
+            // A status result can arrive before the probe exits. Keep a user's
+            // action until that process settles instead of dropping the click.
+            if (operation === "status" && op !== "status")
+                queuedOperation = op;
 
+            return ;
+        }
+
+        queuedOperation = "";
         operation = op;
         received = false;
         error = "";
@@ -86,6 +96,7 @@ Item {
             check();
         } else {
             purgeQueued = false;
+            queuedOperation = "";
             runner.running = false;
         }
     }
@@ -102,7 +113,9 @@ Item {
             if (root.purgeQueued) {
                 root.purgeQueued = false;
                 Qt.callLater(function() {
-                    root.run("purge");
+                    if (root.active)
+                        root.run("purge");
+
                 });
                 return ;
             }
@@ -111,6 +124,13 @@ Item {
                 root.publish({
                     "status": root.path ? "ready" : "needsRuntime",
                     "path": root.path
+                });
+            }
+            if (root.queuedOperation) {
+                Qt.callLater(function() {
+                    if (root.active && root.queuedOperation)
+                        root.run(root.queuedOperation);
+
                 });
             }
         }

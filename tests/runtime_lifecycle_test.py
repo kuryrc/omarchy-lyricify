@@ -93,6 +93,7 @@ operation = sys.argv[1]
 with (Path(__file__).parents[1] / "operations").open("a") as log:
     log.write(operation + "\\n")
 print(json.dumps({"ok": True, "status": {"status":"needsRuntime", "install":"downloading", "purge":"purged"}[operation]}), flush=True)
+if operation == "status": time.sleep(.15)  # Result may arrive before process cleanup finishes.
 if operation == "install": time.sleep(10)
 ''')
     (folder / "shell.qml").write_text('''import QtQuick
@@ -114,11 +115,19 @@ ShellRoot {
             }
         }
     }
-    Timer { interval: 5000; running: true; onTriggered: Qt.quit() }
+    Timer {
+        interval: 5000; running: true
+        onTriggered: {
+            console.log("BUSY_PURGE_TIMEOUT", JSON.stringify({step: root.step,
+                status: runtime.status, operation: runtime.operation, received: runtime.received,
+                purgeQueued: runtime.purgeQueued}));
+            Qt.quit();
+        }
+    }
 }''')
     result = subprocess.run(["quickshell", "-n", "-p", str(folder / "shell.qml")],
         env=dict(os.environ, QT_QPA_PLATFORM="offscreen", QT_QPA_PLATFORMTHEME="", WAYLAND_DISPLAY="", NO_AT_BRIDGE="1"),
         capture_output=True, text=True, timeout=8)
-    assert "BUSY_PURGE_PASS" in result.stdout + result.stderr, result.stdout + result.stderr
+    assert "BUSY_PURGE_PASS" in result.stdout + result.stderr, result.stdout + result.stderr + (folder / "operations").read_text()
     assert (folder / "operations").read_text().splitlines() == ["status", "install", "purge"]
     print("Busy runtime: pending download cancelled before purge, no lost request")
