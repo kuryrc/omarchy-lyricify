@@ -41,6 +41,9 @@ jobs:
         run: |
           chown -R lyric-ci:lyric-ci "$GITHUB_WORKSPACE"
           runuser -u lyric-ci -- env HOME=/home/lyric-ci git rev-parse --verify HEAD
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            runuser -u lyric-ci -- env HOME=/home/lyric-ci python3 scripts/release-metadata.py --check --tag "$GITHUB_REF_NAME"
+          fi
           runuser -u lyric-ci -- env HOME=/home/lyric-ci dotnet restore backend/LyricIsland.Backend --locked-mode
           runuser -u lyric-ci -- env HOME=/home/lyric-ci make test-backend
           runuser -u lyric-ci -- env HOME=/home/lyric-ci make package-local

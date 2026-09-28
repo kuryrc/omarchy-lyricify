@@ -1,4 +1,5 @@
 import "I18n.js" as I18n
+import "Protocol.js" as Protocol
 import QtQuick
 
 Item {
@@ -10,6 +11,7 @@ Item {
     property alias client: backend
     property real pendingSeek: NaN
     property string seekRequest: ""
+    property string resyncRequest: ""
     readonly property var state: backend.snapshot
     readonly property bool available: state !== null && state.player !== null
     readonly property bool playing: available && backend.ready && clock.valid && state.playback.status === "Playing"
@@ -67,6 +69,13 @@ Item {
 
     }
 
+    function requestResync() {
+        if (backend.ready && clock.awaitingResync && !root.resyncRequest)
+            root.resyncRequest = backend.request("session.resync", {
+        }, false);
+
+    }
+
     Timer {
         interval: 80
         repeat: true
@@ -77,6 +86,13 @@ Item {
             }, true);
             root.pendingSeek = NaN;
         }
+    }
+
+    Timer {
+        interval: 250
+        repeat: true
+        running: backend.ready && clock.awaitingResync && !root.resyncRequest
+        onTriggered: root.requestResync()
     }
 
     BackendClient {
@@ -94,12 +110,21 @@ Item {
             if (!ready) {
                 root.pendingSeek = NaN;
                 root.seekRequest = "";
+                root.resyncRequest = "";
             }
         }
         onResponse: (id, operation, result, code) => {
             if (id === root.seekRequest)
                 root.seekRequest = "";
 
+            if (id === root.resyncRequest) {
+                root.resyncRequest = "";
+                // A seek can publish a newer state before this response is queued.
+                if (!code && result && Protocol.validState(result.snapshot) && Protocol.scopeEqual(result.scope, backend.scope) && (!backend.snapshot || result.snapshot.position.discontinuityId >= backend.snapshot.position.discontinuityId))
+                    clock.accept(result.snapshot, result.scope, true);
+                else
+                    clock.invalidate();
+            }
         }
     }
 
@@ -108,8 +133,11 @@ Item {
 
         enabled: root.tickEnabled
         connected: backend.ready
-        onResyncRequested: backend.request("session.resync", {
-        }, false)
+        onResyncRequested: {
+            // A new stall also invalidates a response already in flight.
+            root.resyncRequest = "";
+            root.requestResync();
+        }
     }
 
 }

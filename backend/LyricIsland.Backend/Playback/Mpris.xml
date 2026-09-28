@@ -1,4 +1,7 @@
 <node>
+  <interface name="org.freedesktop.login1.Manager">
+    <signal name="PrepareForSleep"><arg name="Sleeping" type="b"/></signal>
+  </interface>
   <interface name="org.freedesktop.DBus">
     <method name="GetNameOwner"><arg name="Name" type="s" direction="in"/><arg name="Owner" type="s" direction="out"/></method>
     <signal name="NameOwnerChanged"><arg name="Name" type="s"/><arg name="OldOwner" type="s"/><arg name="NewOwner" type="s"/></signal>

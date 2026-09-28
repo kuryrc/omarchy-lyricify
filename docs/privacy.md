@@ -2,6 +2,8 @@
 
 Playback discovery, song metadata, position and controls use the local session D-Bus through MPRIS. The plugin does not request Spotify credentials, browser cookies, OAuth authorization or a developer account. It has no relay service, telemetry or cloud history synchronization.
 
+The backend also listens for logind sleep/wake notifications on the local system D-Bus to refresh playback timing after resume. It does not request permission to suspend the machine or change power settings.
+
 ## Optional network access
 
 - **Lyrics:** QQ Music and NetEase Music are independently off by default. Enabling one permits direct queries to that service using supported song metadata: title, artists, album and duration. Each search endpoint receives only the fields it supports. QQ uses `c.y.qq.com` / `u.y.qq.com`; NetEase uses `music.163.com` / `interface.music.163.com` / `interface3.music.163.com`, over HTTPS. The service also sees the request IP and headers. Region and service changes can affect availability.

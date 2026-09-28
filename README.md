@@ -50,9 +50,9 @@ For an existing installation, disable it with `omarchy plugin disable kuryrc.lyr
 
 The development desktop uses Arch Linux x86_64, Omarchy 4.0.3, Hyprland 0.56.2, Quickshell 0.3.1 and Qt 6.11.2. This is a tested environment, not a minimum-version guarantee.
 
-- Spotify desktop 1.2.96.518 is used for playback integration. Playback timing after seeking has not met the synchronization target; precise alignment with audible output is still being investigated.
+- Spotify desktop 1.2.96.518 has been checked for play/pause and seek synchronization against its reported position. Audible alignment with speakers or Bluetooth remains unverified.
 - Track and lyric recovery after restarting Spotify or resuming from sleep has not been fully verified.
-- Continuous ten-minute animation performance, actual frame presentation and physical display changes remain unverified.
+- Ten-minute continuous animation callback timing has passed the 60 Hz targets. Actual frame presentation and physical display changes remain unverified.
 - The application launcher's “Launching Lyric Island” message can remain visible until its timeout even after the island opens. The shell does not treat the plugin's layer surface as a normal application window.
 - mpv 0.41.0 with mpv-mpris 1.2 has been checked for playback, pause, seek and exit detection. Its native island UI and audio output have not been checked. Other MPRIS players may work but are not certified.
 

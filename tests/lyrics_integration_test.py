@@ -88,6 +88,27 @@ class LyricsRaces(IntegrationTest):
         state = self.client.call("session.resync")["result"]["snapshot"]
         self.assertEqual(state["lyrics"]["documentId"], imported["result"]["documentId"])
 
+    def test_rapid_track_changes_keep_last_document(self):
+        self.assertTrue(self.client.call("settings.update", {"qqEnabled": True})["ok"])
+        for index in range(10):
+            title = f"Slow original {index}" if index % 2 == 0 else f"Original {index}"
+            self.control.Configure(json.dumps({"title": title, "track": 20 + index}))
+            self.client.state(lambda s: s['track'] is not None and s['track']['title'] == title
+                              and (index % 2 != 0 or s['lyrics']['status'] == 'loading'))
+        current = self.client.state(lambda s: s['track']['title'] == title and s['lyrics']['status'] == 'ready')
+        document = current['payload']['lyrics']['documentId']
+        # The slow fixture deliberately ignores cancellation. Let old work
+        # finish, then verify both the snapshot and the last delivered document.
+        time.sleep(.8)
+        snapshot = self.client.call('session.resync')['result']['snapshot']
+        self.assertEqual(snapshot['track']['title'], title)
+        self.assertEqual(snapshot['lyrics']['documentId'], document)
+        last = [e for e in self.client.events if e['event'] == 'lyrics.document'][-1]
+        self.assertEqual(last['scope'], current['scope'])
+        self.assertEqual(last['payload']['document']['lines'][0]['text'], title)
+        self.assertTrue(self.client.call('playback.play')['ok'])
+        self.client.state(lambda s: s['playback']['status'] == 'Playing')
+
     def test_provider_error_keeps_player_control(self):
         self.control.Configure('{"title":"Limited original","track":8}')
         self.client.state(lambda s: s["track"]["title"] == "Limited original")

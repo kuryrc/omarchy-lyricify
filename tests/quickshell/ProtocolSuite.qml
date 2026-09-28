@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import "../../core" as Core
 import "../../core/Release.js" as Release
 import "../../ui" as Ui
@@ -12,6 +13,7 @@ ShellRoot {
     function verify(value) { if (!value) throw new Error("Assertion failed"); }
     Core.BackendClient { id: client; active: false }
     Core.RenderClock { id: clock; connected: true }
+    Core.PlaybackView { id: playback; active: false }
     QtObject { id: prefs; property string language: "en"; function saveLanguage(value) { language = value; } }
     QtObject {
         id: view
@@ -121,8 +123,55 @@ ShellRoot {
         s.position.known = true; s.position.sourceAgeMs = 10001; clock.accept(s, scope);
         compare(clock.valid, false);
     }
+    function clockState(position, discontinuity) {
+        var s = state("Clock fixture", null);
+        s.track.durationMs = 120000; s.track.artUrl = "";
+        s.playback.status = "Playing";
+        s.position.positionMsAtSend = position; s.position.discontinuityId = discontinuity;
+        return s;
+    }
+    // Drive the production view through requests and received protocol messages.
+    // Python controls response ordering while the normal QML timers keep running.
+    IpcHandler {
+        target: "resyncTest"
+        function inspect(): string {
+            return JSON.stringify({playing: playback.playing, position: playback.positionMs,
+                request: playback.resyncRequest, pending: playback.client.pending,
+                snapshot: playback.client.snapshot});
+        }
+        function reset(): string {
+            var c = playback.client;
+            c.status = "stopped"; c.pending = ({}); c.scope = null; c.snapshot = null;
+            c.sequence = 0; c.epoch = "epoch"; c.status = "ready";
+            return "ok";
+        }
+        function sample(position: real, discontinuity: int): string {
+            playback.client.receive(JSON.stringify(test.event(playback.client.sequence + 1, test.clockState(position, discontinuity))));
+            return inspect();
+        }
+        function request(operation: string): string {
+            return playback.client.request(operation, {}, false);
+        }
+        function reveal(): string {
+            playback.tickEnabled = false; playback.tickEnabled = true;
+            return inspect();
+        }
+        function stall(): string {
+            var deadline = Date.now() + 650;
+            while (Date.now() < deadline) {}
+            sample(20000, 1); sample(30000, 1);
+            return inspect();
+        }
+        function reply(id: string, position: real, discontinuity: int, code: string): string {
+            playback.client.receive(JSON.stringify({version: 2, type: "response", id: id,
+                backendSessionId: "epoch", ok: !code, error: {code: code},
+                result: {scope: playback.client.scope, snapshot: test.clockState(position, discontinuity)}}));
+            return inspect();
+        }
+        function quit(): string { Qt.callLater(Qt.quit); return "ok"; }
+    }
     Timer {
-        interval: 10; running: true
+        interval: 10; running: Quickshell.env("LYRIC_ISLAND_TEST_FILTER") !== "resync"
         onTriggered: {
             try {
                 test.init(); test.test_stale_epoch_sequence_and_scope();

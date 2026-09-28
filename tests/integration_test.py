@@ -83,6 +83,7 @@ class IntegrationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import dbus
+        os.environ['DBUS_SYSTEM_BUS_ADDRESS'] = os.environ['DBUS_SESSION_BUS_ADDRESS']
         cls.bus = dbus.SessionBus()
         cls.fake = subprocess.Popen(["/usr/bin/python3", str(ROOT / "tests/fake_mpris.py"), "org.mpris.MediaPlayer2.spotify"], stdout=subprocess.PIPE, text=True)
         assert cls.fake.stdout.readline().strip() == "ready"
@@ -121,6 +122,21 @@ class IntegrationTest(unittest.TestCase):
         paused = self.client.state(lambda s: s["playback"]["status"] == "Paused")
         oracle = json.loads(self.control.Inspect())["positionMs"]
         self.assertAlmostEqual(oracle, paused["payload"]["position"]["positionMsAtSend"], delta=50)
+
+    def test_sleep_invalidates_position_and_resume_resamples(self):
+        self.assertTrue(self.client.call('playback.play')['ok'])
+        self.client.state(lambda s: s['playback']['status'] == 'Playing')
+        self.control.Sleep(True)
+        try:
+            suspended = self.client.state(lambda s: not s['position']['known'])
+            self.control.Configure('{"position":45000}')
+        finally:
+            self.control.Sleep(False)
+        started = time.monotonic()
+        resumed = self.client.state(lambda s: s['position']['known'] and s['position']['positionMsAtSend'] >= 45000)
+        self.assertLess(time.monotonic() - started, .5)
+        self.assertGreater(resumed['payload']['position']['discontinuityId'], suspended['payload']['position']['discontinuityId'])
+        self.assertEqual(resumed['payload']['position']['reason'], 'resume')
 
     def test_unknown_duration_position_and_capabilities(self):
         for args in [{"duration": 0}, {"duration": 120000, "known": False}, {"known": True, "control": False}]:

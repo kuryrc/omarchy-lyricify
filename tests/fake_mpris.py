@@ -13,6 +13,16 @@ TEST = "org.lyricisland.Test"
 DBusGMainLoop(set_as_default=True)
 
 
+class SleepManager(dbus.service.Object):
+    def __init__(self, bus):
+        self.name = dbus.service.BusName('org.freedesktop.login1', bus=bus)
+        super().__init__(bus, '/org/freedesktop/login1')
+
+    @dbus.service.signal('org.freedesktop.login1.Manager', signature='b')
+    def PrepareForSleep(self, sleeping):
+        pass
+
+
 class Player(dbus.service.Object):
     def __init__(self, bus):
         self.name = dbus.service.BusName(sys.argv[1], bus=bus)
@@ -24,9 +34,11 @@ class Player(dbus.service.Object):
         self.track, self.duration, self.known, self.control, self.title = 1, 120000, True, True, "Original fixture"
         self.calls = {key: 0 for key in ["Play", "Pause", "Next", "Previous", "SetPosition"]}
         self.spotify_types = False
+        self.seek_buffer_ms = 0
+        self.get_all_calls = 0
 
     def position_now(self):
-        return self.position + ((time.monotonic() - self.anchor) * 1000 * self.rate if self.status == "Playing" else 0)
+        return self.position + (max(0, time.monotonic() - self.anchor) * 1000 * self.rate if self.status == "Playing" else 0)
 
     def values(self):
         metadata = {"xesam:title": dbus.String(self.title), "xesam:artist": dbus.Array(["Fixture artist"], signature="s"),
@@ -45,6 +57,7 @@ class Player(dbus.service.Object):
 
     @dbus.service.method(PROPS, in_signature="s", out_signature="a{sv}")
     def GetAll(self, interface):
+        self.get_all_calls += 1
         return self.values()
 
     @dbus.service.method(PROPS, in_signature="ss", out_signature="v")
@@ -89,7 +102,8 @@ class Player(dbus.service.Object):
     def SetPosition(self, path, position):
         if path == "/test/track" + str(self.track):
             self.calls["SetPosition"] += 1
-            self.position, self.anchor = position / 1000, time.monotonic()
+            # Spotify can keep reporting Playing while its seek buffer fills.
+            self.position, self.anchor = position / 1000, time.monotonic() + self.seek_buffer_ms / 1000
             self.Seeked(position)
 
     @dbus.service.method(TEST, in_signature="s", out_signature="s")
@@ -105,9 +119,15 @@ class Player(dbus.service.Object):
 
     @dbus.service.method(TEST, out_signature="s")
     def Inspect(self):
-        return json.dumps({"calls": self.calls, "positionMs": self.position_now(), "status": self.status})
+        return json.dumps({"calls": self.calls, "positionMs": self.position_now(), "status": self.status,
+                           "getAllCalls": self.get_all_calls})
+
+    @dbus.service.method(TEST, in_signature='b')
+    def Sleep(self, sleeping):
+        sleep_manager.PrepareForSleep(sleeping)
 
 
+sleep_manager = SleepManager(dbus.SessionBus()) if sys.argv[1] == 'org.mpris.MediaPlayer2.spotify' else None
 player = Player(dbus.SessionBus())
 print("ready", flush=True)
 GLib.MainLoop().run()

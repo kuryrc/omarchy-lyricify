@@ -17,10 +17,38 @@ Item {
     property real correction: 0
     property string identity: ""
     property real discontinuity: -1
+    property real lastPulse: 0
+    property bool awaitingResync: false
 
     signal resyncRequested()
 
-    function accept(state, scope) {
+    function invalidate() {
+        valid = false;
+        awaitingResync = true;
+    }
+
+    function requestFreshSample() {
+        invalidate();
+        resyncRequested();
+    }
+
+    function checkContinuity() {
+        var now = monotonic.elapsedMs();
+        var stalled = enabled && connected && lastPulse > 0 && now - lastPulse > 500;
+        lastPulse = now;
+        if (stalled)
+            requestFreshSample();
+
+        return !stalled;
+    }
+
+    function accept(state, scope, fresh) {
+        // Buffered events retain their old send position after a blocked UI resumes.
+        // Only a response to our new resync request can re-establish the anchor.
+        if (!checkContinuity() || (awaitingResync && !fresh))
+            return ;
+
+        awaitingResync = false;
         var p = state.position;
         var nextIdentity = scope ? scope.playerInstanceId + ":" + scope.trackGeneration : "";
         var now = monotonic.elapsedMs();
@@ -41,13 +69,12 @@ Item {
     }
 
     function update() {
-        if (!valid || !connected)
+        if (!checkContinuity() || !valid || !connected)
             return ;
 
         var elapsed = Math.max(0, monotonic.elapsedMs() - received);
         if (sourceAge + elapsed >= 10000) {
-            valid = false;
-            resyncRequested();
+            requestFreshSample();
             return ;
         }
         positionMs = Math.max(0, anchor + (playing ? elapsed * rate : 0) + correction * Math.max(0, 1 - elapsed / 200));
@@ -57,12 +84,14 @@ Item {
     }
 
     onEnabledChanged: {
-        if (enabled && connected) {
-            valid = false;
-            resyncRequested();
-        }
+        lastPulse = monotonic.elapsedMs();
+        if (enabled && connected)
+            requestFreshSample();
+
     }
     onConnectedChanged: {
+        lastPulse = monotonic.elapsedMs();
+        awaitingResync = false;
         if (!connected)
             valid = false;
 
@@ -70,6 +99,13 @@ Item {
 
     ElapsedTimer {
         id: monotonic
+    }
+
+    Timer {
+        interval: 250
+        repeat: true
+        running: root.enabled && root.connected
+        onTriggered: root.checkContinuity()
     }
 
     FrameAnimation {

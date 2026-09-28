@@ -14,6 +14,7 @@ public sealed class MprisPlayback : IAsyncDisposable
     const string Prefix = "org.mpris.MediaPlayer2.";
     readonly CancellationTokenSource stop = new();
     readonly Channel<bool> dirty = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropOldest });
+    readonly Channel<bool> samplingChanged = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropOldest });
     readonly SemaphoreSlim refresh = new(1);
     readonly List<IDisposable> subscriptions = [];
     DBusConnection? connection;
@@ -21,9 +22,11 @@ public sealed class MprisPlayback : IAsyncDisposable
     Player? player;
     string? selectedName, selectedOwner, trackPath;
     string preferredApplication = "spotify";
-    long generation, discontinuity, revision;
+    long generation, discontinuity, revision, settlingUntil;
     bool seekPending;
-    Task? loop, ticker;
+    bool sleeping;
+    int resumePending;
+    Task? loop, ticker, sleepMonitor;
     public PlaybackState State { get; private set; } = PlaybackState.Empty;
     public event Action<PlaybackState>? Changed;
 
@@ -32,12 +35,59 @@ public sealed class MprisPlayback : IAsyncDisposable
         preferredApplication = application.StartsWith(Prefix, StringComparison.Ordinal) ? application[Prefix.Length..] : application;
         loop = RunAsync();
         ticker = TickAsync();
+        sleepMonitor = WatchSleepAsync();
+    }
+    async Task WatchSleepAsync()
+    {
+        while (!stop.IsCancellationRequested)
+        {
+            try
+            {
+                using var power = new DBusConnection(new DBusConnectionOptions(DBusAddress.System ?? throw new IOException("No system bus")));
+                await power.ConnectAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(3), stop.Token);
+                var manager = new DBusService(power, "org.freedesktop.login1").CreateManager("/org/freedesktop/login1");
+                using var subscription = await manager.WatchPrepareForSleepAsync(value =>
+                {
+                    Volatile.Write(ref sleeping, value);
+                    if (!value) Interlocked.Exchange(ref resumePending, 1);
+                    Signal();
+                }, false);
+                await power.DisconnectedAsync().WaitAsync(stop.Token);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException) { /* Optional system service; session playback remains available. */ }
+            finally
+            {
+                if (Volatile.Read(ref sleeping))
+                {
+                    Volatile.Write(ref sleeping, false);
+                    Interlocked.Exchange(ref resumePending, 1);
+                    Signal();
+                }
+            }
+            try { await Task.Delay(5000, stop.Token); } catch (OperationCanceledException) { }
+        }
     }
     void Signal() { Interlocked.Increment(ref revision); dirty.Writer.TryWrite(true); }
     async Task TickAsync()
     {
-        try { using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3)); while (await timer.WaitForNextTickAsync(stop.Token)) dirty.Writer.TryWrite(true); }
+        try
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
+                deadline.CancelAfter(Stopwatch.GetTimestamp() < Interlocked.Read(ref settlingUntil) ? 100 : 3000);
+                try { await samplingChanged.Reader.ReadAsync(deadline.Token); }
+                catch (OperationCanceledException) when (!stop.IsCancellationRequested) { dirty.Writer.TryWrite(true); }
+            }
+        }
         catch (OperationCanceledException) { }
+    }
+    void FollowTransition()
+    {
+        // Some players report Playing while buffering after a seek. Recheck for
+        // one second so the first anchor cannot drift until the normal 3s poll.
+        Interlocked.Exchange(ref settlingUntil, Stopwatch.GetTimestamp() + Stopwatch.Frequency);
+        samplingChanged.Writer.TryWrite(true);
     }
     async Task RunAsync()
     {
@@ -88,6 +138,12 @@ public sealed class MprisPlayback : IAsyncDisposable
         await refresh.WaitAsync(stop.Token);
         try
         {
+            if (Volatile.Read(ref sleeping))
+            {
+                if (State.PositionKnown)
+                    Publish(State with { PositionKnown = false, DiscontinuityId = ++discontinuity, Reason = "suspend" });
+                return;
+            }
             if (connection is null || bus is null) return;
             var names = await ListAsync();
             if (selectedName is not null)
@@ -132,7 +188,12 @@ public sealed class MprisPlayback : IAsyncDisposable
             if (changed) { generation++; reason = "track-change"; }
             else if (seekPending) reason = "seek";
             else if (State.Playback.Status != "Playing" && values.PlaybackStatus == "Playing") reason = "resume";
-            if (reason != "sample") discontinuity++;
+            if (Interlocked.Exchange(ref resumePending, 0) != 0) reason = "resume";
+            if (reason != "sample")
+            {
+                discontinuity++;
+                if (values.PlaybackStatus == "Playing") FollowTransition();
+            }
             seekPending = false; trackPath = path;
             var rate = values.Rate is double r && double.IsFinite(r) && r > 0 && r <= 16 ? r : 1;
             var control = values.CanControl == true;
@@ -203,6 +264,7 @@ public sealed class MprisPlayback : IAsyncDisposable
         await stop.CancelAsync(); dirty.Writer.TryComplete(); connection?.Dispose();
         if (loop is not null) await loop;
         if (ticker is not null) await ticker;
+        if (sleepMonitor is not null) await sleepMonitor;
         stop.Dispose(); refresh.Dispose();
     }
 }

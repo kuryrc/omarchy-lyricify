@@ -61,6 +61,10 @@ Player selection defaults to Spotify and remains on the chosen instance while it
 
 QML anchors received positions to a monotonic clock, interpolates locally and requests resynchronization after discontinuities. Paused or hidden static content does not keep a frame loop running. Position samples, lyric timestamps, compositor presentation and audible output are different measurements.
 
+The backend normally samples every three seconds. While playing, a seek, track change or resume starts a one-second window of 100 ms samples. This corrects players that report `Playing` before their position starts advancing after buffering. Both player-initiated seeks and island controls use this path; ordinary samples do not extend the window.
+
+After an event-loop stall longer than 500 ms, the render clock rejects buffered position events until a newly requested resync response arrives. It does not re-anchor old send-time positions to the current receive time. The backend also listens to logind's `PrepareForSleep` signal on the system bus: sleep invalidates the current position, and wake triggers an immediate sample with a new discontinuity. System-bus access is read-only and optional; ordinary session playback and polling continue if logind is unavailable.
+
 ### Display behavior
 
 The island uses a fixed transparent layer surface with an input region limited to visible content. It stays at the top edge, initially center-right. It does not change the bar layout or automatically measure the clock and weather widgets to avoid overlap. Settings use a separate window with keyboard focus; ordinary lyric display does not take keyboard focus.

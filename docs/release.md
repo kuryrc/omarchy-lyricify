@@ -1,65 +1,77 @@
 # Release and maintenance
 
-This guide is for maintainers building and publishing the plugin. User installation and removal are covered in the [README](../README.md). Keep [known limitations](../README.md#compatibility-and-known-limitations) accurate until the corresponding [acceptance checks](testing.md) pass.
+This guide covers packaging and publication. Installation instructions and current limitations belong in the [README](../README.md).
+
+## Versions
+
+`VERSION` is the release input; the tag is exactly `v` followed by that value. Use dotted prerelease identifiers and mark candidates as GitHub prereleases.
+
+| Release | Version / tag |
+| --- | --- |
+| Candidate | `0.2.0-rc.2` / `v0.2.0-rc.2` |
+| First accepted release | `0.2.0` / `v0.2.0` |
+| Compatible fix | `0.2.1` / `v0.2.1` |
+| Next feature release | `0.3.0` / `v0.3.0` |
+
+Increment the candidate number when its contents change. Keep published tags and assets immutable. Do not publish `-dev` versions or use build metadata (`+...`). Follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html); before 1.0, incompatible changes increment the minor version and need migration notes.
+
+Promoting a candidate requires updating `VERSION`, regenerating metadata and rebuilding. Changing a release title or prerelease flag does not change the embedded backend version. CI checks tag/version agreement.
 
 ## Build a candidate
 
-`VERSION` is the release input. Update it, generate the QML/manifest metadata, and run the checks:
+Update `VERSION`, then run:
 
 ```sh
 make version
 make check
 ```
 
-Commit the source and VERSION before packaging, then run:
+Commit the source and version on a preparation branch before packaging:
 
 ```sh
 make verify-package
 ```
 
-This builds a self-contained Linux x86_64 backend, verifies activation without an SDK, and exercises runtime cleanup and reinstallation. It produces a versioned archive, `.sha256` file and `build-provenance.json` under `artifacts/`, and updates `runtime-manifest.json`.
+This builds and checks the self-contained Linux x86_64 backend, including SDK-hidden activation, cleanup and reinstallation. It writes the archive, checksum and `build-provenance.json` under `artifacts/`, and updates `runtime-manifest.json`.
 
-Check the candidate before using it:
+Check that:
 
-- The manifest's version, byte size and SHA-256 match the archive. A version change clears old targets; rebuild instead of relabeling an archive.
-- The provenance records the backend source commit, SDK/runtime versions and hashes of source, build configuration, packaging script and bundled notices. `backendSourceCommit` is null when those inputs are uncommitted; commit them and rebuild for a release candidate.
-- The package carries the dependency lock file, LICENSE, NOTICE, third-party licenses, Helper modification notes and the actual bundled .NET notices. Review [THIRD_PARTY](../THIRD_PARTY.md) whenever dependencies or runtime versions change.
-- Record the commands, build identity and results in the release PR or CI artifacts. Local measurements belong in ignored `artifacts/`; keep user-facing limitations in the README.
+- The manifest's version, size and SHA-256 match the archive.
+- Provenance records a reachable source commit, source/build-input hashes and SDK/runtime versions. A null `backendSourceCommit` means the inputs were uncommitted: commit and rebuild.
+- The package includes LICENSE, NOTICE, dependency locks, third-party licenses, Helper modification notes and the bundled .NET notices. Review [THIRD_PARTY](../THIRD_PARTY.md) after dependency changes.
 
-Commit the generated manifest separately if necessary. Its source commit identifies the backend inputs, which must remain unchanged when adding documentation or the download URL. Local candidate manifests may have a null URL. None of the `make` commands upload, push, tag or submit anything.
-
-Keep the source commit reachable after building. Amending an author or squashing history changes its SHA even when the files are identical; rebuild after such changes rather than relabeling an existing archive.
+Keep backend inputs unchanged while preparing the final download manifest. Its source commit may precede the metadata commit. Rebuild after amending or squashing the recorded source commit. Local manifests may have a null URL; the published default branch must have a working download entry. Build commands do not upload or publish.
 
 ## Validate installation
 
-Use the [source installation](../README.md#install-from-source) for local native checks. The plugin ID is `kuryrc.lyricify`; keep it stable across releases. Native load registers the application entry, so registration does not depend on the local installer.
+Use the [source installation](../README.md#install-from-source) for local checks. Confirm the running version and backend handshake; see [reloading an updated plugin](troubleshooting.md#reloading-an-updated-plugin) when Omarchy retains old QML.
 
-In Omarchy 4.0.3, `plugin add` clones and validates a repository. Use `--enable`, accept its interactive enable prompt, or enable the plugin afterward. `--yes` alone does not enable it. There is no post-install dependency hook; backend preparation must work from the installed plugin itself. See [Omarchy's authoring documentation](https://github.com/omacom/omarchy/blob/quattro/docs/omarchy-shell.md).
+Then test the candidate through the README's Git installation on a clean Omarchy machine without the .NET SDK. Check first-run consent, HTTPS download, preparation, launcher opening, quit/reopen, update, disable/remove, reinstall and data cleanup. Preparation failures must leave settings usable. A local archive test does not establish public delivery or native-library compatibility.
 
-Verify the running version and backend handshake after installation. A file copied to disk does not establish which QML or binary is active. Follow [reloading an updated plugin](troubleshooting.md#reloading-an-updated-plugin) if the host retains old QML.
-
-A local archive test does not validate public HTTPS delivery or a clean machine's native-library compatibility. Once an authorized candidate asset is available, test a fresh Omarchy Git installation without the .NET SDK: first-run consent, download, preparation, launcher opening, quit/reopen, update, disable/remove, reinstall and explicit data cleanup. The settings window must remain usable when preparation fails.
+Keep plugin ID `kuryrc.lyricify` stable. Native load registers the launcher; backend preparation must work without an installer hook. In Omarchy 4.0.3, `plugin add --yes` alone does not enable a plugin: use `--enable` or explicitly enable it afterward.
 
 ## Publish and submit
 
-Publication requires maintainer authorization. The local build commands do not grant it.
+Publication requires maintainer authorization.
 
-1. Freeze the reviewed source and supported software matrix. Complete the applicable playback, lyric, recovery, performance and package checks in [testing](testing.md).
-2. Publish the authorized candidate repository and fixed prerelease archive with its checksum and provenance. Set that asset's HTTPS URL in `runtime-manifest.json`, retaining its exact size and hash. Verify that backend inputs still match the recorded source commit.
-3. Run remote CI and the fresh Git-installation checks above. Keep the release marked as a candidate while required checks fail or remain unperformed. Promote it only after those checks pass.
-4. Write release notes describing user-visible changes, compatibility, known issues and any migration steps. Keep detailed run logs with the release/CI artifacts.
-5. Submit the exact reviewed commit to the [community marketplace](https://plugins.omarchy.org/publish.html), following its current [submission rules](https://github.com/omacom/omarchy-plugin-marketplace/blob/main/SUBMISSION.md). Include the installation instructions, dependencies, license scope, privacy behavior and preview. Automated validation and maintainer approval are separate steps.
+1. Freeze the reviewed source and supported environment. Collect [test results](testing.md), record remaining limitations in the README, and write release notes with user-visible changes and migration steps.
+2. Set the fixed asset URL in `runtime-manifest.json` with its exact size and SHA-256. Verify the packaged source inputs, commit the final metadata and run remote CI on that commit.
+3. Publish the authorized candidate archive, checksum and provenance with the tag pointing to that final commit. Verify the public download before advancing the default branch to it; Omarchy installs from the default branch.
+4. Complete the fresh installation checks above. Experimental candidates must disclose missing validation. A public beta requires passing automated checks and all applicable desktop, synchronization, performance and installation checks in [testing](testing.md). Explain inapplicable cases; do not label an untested supported feature inapplicable. A stable release also requires resolving beta feedback and reviewing compatibility again.
+5. Submit the exact final commit through the [marketplace Issue form](https://plugins.omarchy.org/publish.html), following the current [submission rules](https://github.com/omacom/omarchy-plugin-marketplace/blob/main/SUBMISSION.md). Include installation, dependencies, licensing, privacy and the root `preview.png`. Automated validation and maintainer approval are separate.
 
-The root `preview.png` is shared by the README and marketplace submission; generate it with `make previews`. Check marketplace requirements again before submitting. The repository's [CI workflow](../.github/workflows/check.yml) runs portable build, test and package checks without an upload step. Quickshell/Wayland checks run on Omarchy.
-
-Freeze the final release commit after filling the download manifest. CI, the tag's target commit, default-branch HEAD, marketplace validation and the security baseline must refer to that exact SHA. The backend source commit can precede this final metadata commit if its recorded inputs still match. Do not amend or push another commit while review is pending; even documentation changes require fresh marketplace validation. Marketplace submission uses its Issue form, not a pull request to the catalog.
+At submission, CI, tag, default-branch HEAD, marketplace validation and security review must agree on the final commit. Any later commit, including documentation changes, needs fresh marketplace validation. Generate preview images with `make previews`. Keep detailed logs in PR/CI artifacts, not new repository reports.
 
 ## Update and rollback
 
-Omarchy updates the plugin from the repository's default branch. Keep every referenced runtime asset available and immutable while that plugin revision remains installable. The manifest selects an exact backend by version, HTTPS URL, size and SHA-256; never substitute a moving `latest` asset.
+Keep every referenced asset available and immutable. Runtime activation verifies the archive and version/protocol handshake before switching; partial downloads must never replace a complete runtime. Stopping the old backend must not replay pending controls.
 
-Runtime activation verifies the archive and a real version/protocol handshake before switching. Failed or partial downloads leave the previous complete runtime intact. Switching stops the old child; pending playback commands are not replayed. Offline fallback and runtime rollback require the same backend version and protocol contract. Full application rollback also needs matching UI source and readable data schemas.
+With the plugin disabled and previews stopped:
 
-With the plugin disabled and previews stopped, `python3 scripts/runtime.py rollback` selects a previous compatible local runtime. It is not a general downgrade across product versions. Schema changes need migration, backup and recovery tests; [architecture](architecture.md#persistent-data) describes data ownership and [privacy](privacy.md#local-data) lists user locations.
+```sh
+python3 scripts/runtime.py rollback
+```
 
-Rebuild self-contained packages when their embedded .NET runtime needs updates. Installing a new system SDK does not update an already-distributed runtime. Use a new release version for changed binary inputs, rerun the package checks, and keep compatibility claims limited to verified systems and players.
+Rollback selects a previous compatible local backend with the same version and protocol; it is not a general application downgrade. A full downgrade also needs matching UI source and readable data schemas. Schema changes need migration, backup and recovery tests.
+
+A system SDK update does not patch the bundled runtime. Rebuild under a new release version when binary inputs change, and rerun package checks.

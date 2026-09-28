@@ -1,16 +1,16 @@
 {
   "manifestVersion": 1,
-  "backendVersion": "0.2.0-rc.1",
-  "backendSourceCommit": "f27f45293bcfdf00bab2d5a66c4fc775705661c5",
-  "backendSourceSha256": "fec1378c10ecc7d9ebc6e945f06a9aae4356f481c2520c760923ad1511a0a4c5",
+  "backendVersion": "0.2.0-rc.2",
+  "backendSourceCommit": null,
+  "backendSourceSha256": "a83945b7095f34905c54bd7492569e61e67d9ea51c12b8a7974f3d84b2da1289",
   "supportedProtocols": [
     2
   ],
   "targets": {
     "linux-x64": {
-      "url": "https://github.com/kuryrc/omarchy-lyricify/releases/download/v0.2.0-rc.1/lyric-island-0.2.0-rc.1-linux-x64.tar.gz",
-      "sha256": "df8776c09464c7c54e2207d20883fe97cd666bc228c424223428b8d109caf62b",
-      "sizeBytes": 36271124,
+      "url": null,
+      "sha256": "562e5825fcb54ad6b5729c3f84beb3263312a7abc3ec29a10245d381204f19d9",
+      "sizeBytes": 36273744,
       "entryPoint": "LyricIsland.Backend"
     }
   }

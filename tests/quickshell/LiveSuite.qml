@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../core" as Core
+import "../../core/Timeline.js" as Timeline
 
 ShellRoot {
     FloatingWindow {
@@ -14,7 +15,8 @@ ShellRoot {
         function state(): string {
             return JSON.stringify({status: view.client.status, epoch: view.client.epoch,
                 available: view.available, playing: view.playing, positionMs: view.positionMs,
-                canToggle: view.canToggle, documentId: view.documentId, scope: view.client.scope});
+                canToggle: view.canToggle, documentId: view.documentId, scope: view.client.scope,
+                lineIndex: Timeline.activeIndex(view.lines, view.positionMs)});
         }
         function command(operation: string, parameters: string): string {
             return view.client.request(operation, JSON.parse(parameters), operation.indexOf("playback.") === 0 || operation.indexOf("lyrics.") === 0);

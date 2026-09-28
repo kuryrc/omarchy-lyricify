@@ -46,6 +46,7 @@ cpu_start, _ = resources()
 peak_rss = 0
 state_changes = []
 previous_state = None
+interruption = None
 while time.monotonic() - start < args.seconds:
     time.sleep(max(0, min(1, args.seconds - (time.monotonic() - start))))
     _, rss = resources()
@@ -56,6 +57,9 @@ while time.monotonic() - start < args.seconds:
     if state != previous_state:
         state_changes.append(dict(wallSeconds=round(time.monotonic()-start, 3), **state))
         previous_state = state
+    if not (state["shown"] and state["playing"] and not state["expanded"] and not state["dragging"] and not state["locked"] and state["displaysOn"]):
+        interruption = "Visible compact playback was interrupted; restart the measurement."
+        break
 cpu_end, rss = resources()
 elapsed = time.monotonic() - start
 report = json.loads(ipc("metrics"))
@@ -64,15 +68,19 @@ report.update(wallSeconds=elapsed, cpuPercentOneCore=100*(cpu_end-cpu_start)/ela
               scenario="original fixture loop; compact; no real audio",
               displayStart=display_start, displayEnd=displays())
 report["stateChanges"] = state_changes
+report["requestedSeconds"] = args.seconds
+report["completedRequestedDuration"] = elapsed >= args.seconds
 report["callbackTimeCoverage"] = report["seconds"] / elapsed
 report["validContinuousSample"] = (
-    .95 <= report["callbackTimeCoverage"] <= 1.05
+    report["completedRequestedDuration"] and interruption is None
+    and .95 <= report["callbackTimeCoverage"] <= 1.05
     and all(m["dpmsStatus"] for m in report["displayEnd"])
     and all(s["shown"] and s["playing"] and not s["expanded"] and not s["dragging"] and not s["locked"] and s["displaysOn"] for s in state_changes)
 )
 if not report["validContinuousSample"]:
-    report["note"] = "Interrupted or incomplete sample; do not treat percentiles as continuous visible playback performance."
+    report["note"] = interruption or "Interrupted or incomplete sample; do not treat percentiles as continuous visible playback performance."
 out = root / "artifacts/preview-metrics.json"
 out.parent.mkdir(exist_ok=True)
 out.write_text(json.dumps(report, indent=2) + "\n")
 print(json.dumps(report, indent=2))
+raise SystemExit(0 if report["validContinuousSample"] else 1)
