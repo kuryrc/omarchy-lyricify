@@ -8,8 +8,9 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-24.04
-    # Ubuntu 24.04, linux/amd64. Upgrade this digest and the apt snapshot together.
-    container: ubuntu@sha256:496754492fb28b4d3049432f2ca787449331e23fb14f0dd3fffea86bf5a93eb4
+    # buildpack-deps:noble-curl, linux/amd64, includes the CA bundle for apt HTTPS.
+    # Upgrade this digest and the Ubuntu snapshot together.
+    container: buildpack-deps@sha256:19436829fc28e3b3d9242ec90c23ab74feedde670470e2baf33cf5fd6ea9f8aa
     timeout-minutes: 15
     env:
       DEBIAN_FRONTEND: noninteractive
@@ -21,17 +22,12 @@ jobs:
           rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*
           cat > /etc/apt/sources.list.d/ubuntu.sources <<'EOF'
           Types: deb
-          URIs: http://snapshot.ubuntu.com/ubuntu/20260928T000000Z/
+          URIs: https://snapshot.ubuntu.com/ubuntu/20260928T000000Z/
           Suites: noble noble-updates noble-security
           Components: main universe
           Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
           Check-Valid-Until: no
           EOF
-          # The minimal base has no CA bundle. Bootstrap it using signed apt
-          # metadata, then use TLS for the remaining fixed-snapshot packages.
-          apt-get update
-          apt-get install -y --no-install-recommends ca-certificates
-          sed -i 's|http://snapshot|https://snapshot|' /etc/apt/sources.list.d/ubuntu.sources
           apt-get update
           apt-get install -y --no-install-recommends curl git make nodejs python3 dbus python3-dbus python3-gi openssl libicu74
           useradd --create-home lyric-ci

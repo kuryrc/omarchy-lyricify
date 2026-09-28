@@ -17,7 +17,7 @@ make verify-package # Build candidate; verify notices, SDK-hidden startup, rollb
 
 Tests use temporary XDG directories and isolated D-Bus services. Keep controlled-player tests off your real Spotify bus. GUI checks use offscreen windows where possible; real Wayland behavior and audio synchronization require separate checks. The [test guide](docs/testing.md) lists coverage and measurement methods.
 
-CI pins Actions to full commits, the Ubuntu container to a digest, and apt packages to a dated archive snapshot with signature checks enabled. Only CA-certificate bootstrap uses HTTP; subsequent package downloads use HTTPS. There is no rolling-mirror fallback. Tests run as an unprivileged user so file-permission checks remain meaningful. Local builds and CI use the same exact SDK and locked NuGet dependencies; the backend project also pins its bundled runtime version.
+CI pins Actions to full commits, the Ubuntu-based build container to a digest, and apt packages to a dated archive snapshot with signature checks enabled. The container includes CA certificates; all package downloads use HTTPS, with no rolling-mirror fallback. Tests run as an unprivileged user so file-permission checks remain meaningful. Local builds and CI use the same exact SDK and locked NuGet dependencies; the backend project also pins its bundled runtime version.
 
 Update these build dependencies deliberately: change the workflow pins, SDK or runtime version as appropriate, then restore both projects with `-p:RestoreLockedMode=false` if their dependencies changed. Review and commit the resulting lockfiles. Run `make check` and rebuild/verify the self-contained package before publishing a dependency update. A newer system SDK does not update an installed self-contained backend.
 
