@@ -49,7 +49,7 @@ A changing delay after seeking or resuming is different from a fixed lyric offse
 
 | Message | Next step |
 | --- | --- |
-| **This build has no downloadable playback component** | This candidate has no public backend download. Use the [source installation](../README.md#install-from-source); enabling online lyric sources will not install the component. |
+| **This build has no downloadable playback component** | The checkout has no download entry in `runtime-manifest.json`. Use a published candidate or the [source installation](../README.md#install-from-source); enabling online lyric sources will not install the component. |
 | **Download verification failed** / **The download is incomplete** | Retry preparation from settings. Keep the published checksum unchanged. |
 | **Update required** / **The playback component version is incompatible** | Install the matching plugin and backend version together, then reload the plugin. |
 | **This build supports Linux x86_64 only** | No compatible backend is supplied for the current architecture. |

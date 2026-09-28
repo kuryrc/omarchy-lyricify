@@ -17,9 +17,21 @@ Rendered from the application with original demo lyrics and artwork. [Preview so
 - Drag horizontally, snap to screen center, and preserve position. Adjust width, monitor, fullscreen visibility and pause behavior in settings.
 - English / Simplified Chinese settings, optional online artwork, local cache and explicit data cleanup.
 
+## Install
+
+**This is an experimental prerelease for Linux x86_64.** Check the [known limitations](#compatibility-and-known-limitations) before installing. It has not been listed or approved by the Omarchy marketplace.
+
+```sh
+omarchy plugin add https://github.com/kuryrc/omarchy-lyricify --enable
+```
+
+The first load opens settings and asks permission to download the playback component from this repository's GitHub Release. The download is about 36 MB and includes its .NET runtime; **no .NET SDK or Spotify developer account is needed**. The plugin checks the archive size and SHA-256 before activation. Lyrics and online artwork have separate opt-in settings.
+
+Open **Lyric Island** from the application launcher to show it again after **Quit**. Omarchy installs the current default branch, not a tag pinned by the marketplace. Published candidate archives, checksums and source provenance are available on the [Releases page](https://github.com/kuryrc/omarchy-lyricify/releases).
+
 ## Install from source
 
-**This is a local release candidate. There is no public binary download or marketplace installation yet.** Source installation currently requires Linux x86_64, an Omarchy desktop with Quickshell, the .NET SDK specified in [global.json](global.json), Python 3 and Make. The installed backend includes its runtime, so it does not need the SDK afterward.
+Local builds need Linux x86_64, an Omarchy desktop with Quickshell, the .NET SDK specified in [global.json](global.json), Python 3 and Make. The installed backend includes its runtime, so it does not need the SDK afterward.
 
 Run these commands from the repository root in your graphical session:
 
