@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../VERSION').Trim())</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus.Protocol" Version="[0.95.1]" />
+    <PackageReference Include="Tmds.DBus.Generator" Version="[0.95.1]" PrivateAssets="all" />
+    <PackageReference Include="Lyricify.Lyrics.Helper" Version="[0.2.0]" />
+    <!-- Matching uses Helper's managed character table. The optional external
+         converter has no declared redistribution license and is excluded. -->
+    <PackageReference Include="CHTCHSConv" Version="[1.0.0]" ExcludeAssets="all" PrivateAssets="all" />
+    <AdditionalFiles Include="Playback/Mpris.xml" Namespace="LyricIsland.DBus" DBusGeneratorMode="Proxy" />
+  </ItemGroup>
+</Project>

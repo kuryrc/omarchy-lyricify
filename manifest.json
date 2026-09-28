@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "kuryrc.lyricify",
+  "name": "Lyric Island",
+  "version": "0.2.0-rc.1",
+  "author": "omarchy-lyricify contributors",
+  "license": "MIT AND Apache-2.0 AND CC-BY-SA-4.0",
+  "description": "A native music lyrics island for Omarchy",
+  "kinds": [
+    "panel"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "panel": "LyricIsland.qml"
+  }
+}

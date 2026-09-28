@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "CHTCHSConv": {
+        "type": "Direct",
+        "requested": "[1.0.0, 1.0.0]",
+        "resolved": "1.0.0",
+        "contentHash": "A6G2FO6AZ6MHNY3YbA98YF2Cty1O74+hffIJN6vKONUhyeXtd+kpZumYLFW0Q8tT3SToXNQoLuMFqScQF+FY8g=="
+      },
+      "Lyricify.Lyrics.Helper": {
+        "type": "Direct",
+        "requested": "[0.2.0, 0.2.0]",
+        "resolved": "0.2.0",
+        "contentHash": "5A+BXQ3WxHKztuQcA/pGFXtjBDTVXIS2rfMHKvU/vvBekDJVeAThm9ShJr2l3qWVDaQdXysHDbx0mBo7+gzBgA==",
+        "dependencies": {
+          "CHTCHSConv": "1.0.0",
+          "Newtonsoft.Json": "13.0.3",
+          "SharpZipLib": "1.4.2"
+        }
+      },
+      "Tmds.DBus.Generator": {
+        "type": "Direct",
+        "requested": "[0.95.1, 0.95.1]",
+        "resolved": "0.95.1",
+        "contentHash": "f1EaF9XwJAEv2lkJaNoOeTPOguw7UdR0SgMQZtVLHmjSC8AKj738KLePn495ynjYaUUtZKciP5Eb1iC+mFFODg=="
+      },
+      "Tmds.DBus.Protocol": {
+        "type": "Direct",
+        "requested": "[0.95.1, 0.95.1]",
+        "resolved": "0.95.1",
+        "contentHash": "IbGhqZAqqgB/DkT70+lAk4MNv95tZtsTMFQ+S3uGy0aTfOkGVeFjeNJsX8dBI/3+CPnO5XW6lRQKGeFEgHElKw=="
+      },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+      },
+      "SharpZipLib": {
+        "type": "Transitive",
+        "resolved": "1.4.2",
+        "contentHash": "yjj+3zgz8zgXpiiC3ZdF/iyTBbz2fFvMxZFEBPUcwZjIvXOf37Ylm+K58hqMfIBt5JgU/Z2uoUS67JmTLe973A=="
+      }
+    },
+    "net10.0/linux-x64": {}
+  }
+}

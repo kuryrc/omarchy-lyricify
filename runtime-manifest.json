@@ -1,0 +1,10 @@
+{
+  "manifestVersion": 1,
+  "backendVersion": "0.2.0-rc.1",
+  "backendSourceCommit": null,
+  "backendSourceSha256": null,
+  "supportedProtocols": [
+    2
+  ],
+  "targets": {}
+}

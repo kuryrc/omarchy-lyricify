@@ -1,0 +1,24 @@
+Lyric Island / omarchy-lyricify
+
+Developed with reference to Lyricify / Lyricify-App by WXRIW (XY Wang).
+https://github.com/WXRIW/Lyricify-App
+
+Dynamic Lyrics Island is credited by Lyricify to WXRIW / XY Wang and is
+licensed upstream under Creative Commons Attribution-ShareAlike 4.0.
+The Lyric Island visual presentation adapts that concept for Omarchy:
+Qt Quick rendering, bilingual display, horizontal drag and center snapping,
+MPRIS playback controls, Linux settings and lifecycle management.
+Our UI layer and preview captures are distributed under CC BY-SA 4.0.
+See licenses/CC-BY-SA-4.0.txt. Changes are by omarchy-lyricify contributors.
+We do not distribute Lyricify application binaries, logos or screenshots.
+
+This project uses Lyricify Lyrics Helper 0.2.0 by WXRIW / Lyricify contributors,
+licensed under the Apache License, Version 2.0. Pinned source:
+https://github.com/WXRIW/Lyricify-Lyrics-Helper/tree/a139e385b032b9abfca4c060627776cf9c3147ad
+See licenses/Lyricify.Lyrics.Helper.txt and
+backend/LyricIsland.Backend/Lyrics/UpstreamMatching/README.md for local changes.
+The pinned upstream tree has no NOTICE file; this notice is our attribution.
+
+This is an independent project, not an official Lyricify port and not
+endorsed by Lyricify, Spotify, QQ Music, NetEase Music or Omarchy.
+Dependency licenses and redistribution scope are listed in THIRD_PARTY.md.

@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/WXRIW/Lyricify-Lyrics-Helper",
+  "commit": "a139e385b032b9abfca4c060627776cf9c3147ad",
+  "license": "Apache-2.0",
+  "originalFiles": {
+    "CompareHelper.cs": "94289502d0a487aaa6d09cb60f4373fa68ce246f839f6d08e786fb92f5fd1fe9",
+    "NameMatch.cs": "e4a666ce987c14cceb3cda97062d05a104e623f6f174514b0541d968e9c60ddc",
+    "ArtistMatch.cs": "a7b78ad702b244cdba583edc55cd3f983cf363b4d56e0972b04bcee380f5e1d7",
+    "DurationMatch.cs": "dba70d65e7335ff56c20e5be3861ea4d1e823fdce70b88d1142d556f27f44253"
+  },
+  "digestEncoding": "UTF-8 without BOM, LF; captured source text"
+}

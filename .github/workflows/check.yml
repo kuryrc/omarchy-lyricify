@@ -1,0 +1,26 @@
+name: Local candidate checks
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.111'
+      - name: Isolated D-Bus test dependencies
+        run: sudo apt-get update && sudo apt-get install -y dbus python3-dbus python3-gi
+      - run: dotnet restore backend/LyricIsland.Backend --locked-mode
+      - run: make test-backend
+      - run: make package-local
+      # No upload, release, tag, push, deployment or marketplace operation.
+      # Native QML, SDK-hidden startup and desktop checks run on Omarchy.
+      # Attach their results to the PR/release alongside CI artifacts.

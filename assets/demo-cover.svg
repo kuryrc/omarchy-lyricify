@@ -1,0 +1,9 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0; original illustration by omarchy-lyricify contributors. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs><linearGradient id="sky" x2="0.3" y2="1"><stop stop-color="#6556af"/><stop offset=".6" stop-color="#d798b2"/><stop offset="1" stop-color="#efc8b1"/></linearGradient></defs>
+  <rect width="160" height="160" rx="20" fill="url(#sky)"/>
+  <circle cx="113" cy="48" r="22" fill="#ffedd6"/>
+  <path d="M0 114 Q45 72 87 109 T160 103 V160 H0Z" fill="#434b79"/>
+  <path d="M0 143 Q56 96 102 137 T160 123 V160 H0Z" fill="#252b48"/>
+  <path d="M20 27H49 M20 34H39" stroke="#ffe9de" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+</svg>

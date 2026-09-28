@@ -1,0 +1,21 @@
+<node>
+  <interface name="org.freedesktop.DBus">
+    <method name="GetNameOwner"><arg name="Name" type="s" direction="in"/><arg name="Owner" type="s" direction="out"/></method>
+    <signal name="NameOwnerChanged"><arg name="Name" type="s"/><arg name="OldOwner" type="s"/><arg name="NewOwner" type="s"/></signal>
+  </interface>
+  <interface name="org.mpris.MediaPlayer2.Player">
+    <method name="Play"/><method name="Pause"/><method name="Next"/><method name="Previous"/>
+    <method name="SetPosition"><arg name="TrackId" type="o" direction="in"/><arg name="Position" type="x" direction="in"/></method>
+    <signal name="Seeked"><arg name="Position" type="x"/></signal>
+    <property name="PlaybackStatus" type="s" access="read"/>
+    <property name="Rate" type="d" access="read"/>
+    <property name="Metadata" type="a{sv}" access="read"/>
+    <property name="Position" type="x" access="read"/>
+    <property name="CanControl" type="b" access="read"/>
+    <property name="CanPlay" type="b" access="read"/>
+    <property name="CanPause" type="b" access="read"/>
+    <property name="CanGoNext" type="b" access="read"/>
+    <property name="CanGoPrevious" type="b" access="read"/>
+    <property name="CanSeek" type="b" access="read"/>
+  </interface>
+</node>

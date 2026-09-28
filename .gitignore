@@ -1,0 +1,8 @@
+/Lyricify-App/
+/artifacts/
+/runtime/
+__pycache__/
+**/bin/
+**/obj/
+*.user
+.DS_Store

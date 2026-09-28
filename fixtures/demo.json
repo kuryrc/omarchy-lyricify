@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "trackId": "demo:evening-signals",
+  "title": "Evening Signals",
+  "artist": "Lyric Island · 原创动画演示",
+  "durationMs": 34000,
+  "source": "fixture",
+  "syncLevel": "mixed",
+  "lines": [
+    {"startMs": 1000, "endMs": 6500, "text": "今夜も、光のほうへ", "translation": "今夜也朝着光的方向",
+      "words": [{"text":"今夜も、","startMs":1000,"endMs":2600},{"text":"光の","startMs":2900,"endMs":4200},{"text":"ほうへ","startMs":4400,"endMs":6200}]},
+    {"startMs": 7000, "endMs": 12500, "text": "让晚风把白天的喧嚣轻轻带走", "translation": "",
+      "words": [{"text":"让","startMs":7000,"endMs":7300},{"text":"晚风","startMs":7300,"endMs":8100},{"text":"把白天的","startMs":8300,"endMs":9500},{"text":"喧嚣","startMs":9500,"endMs":10400},{"text":"轻轻","startMs":10600,"endMs":11300},{"text":"带走","startMs":11400,"endMs":12200}]},
+    {"startMs": 13000, "endMs": 22500, "text": "We follow little lights across the quiet city, one slow breath at a time", "translation": "循着寂静城市里的微光，慢慢呼吸",
+      "words": [{"text":"We ","startMs":13000,"endMs":13400},{"text":"follow ","startMs":13400,"endMs":14200},{"text":"little ","startMs":14300,"endMs":14900},{"text":"lights ","startMs":15000,"endMs":15900},{"text":"across ","startMs":16100,"endMs":16800},{"text":"the ","startMs":16800,"endMs":17100},{"text":"quiet ","startMs":17300,"endMs":18000},{"text":"city, ","startMs":18100,"endMs":18800},{"text":"one ","startMs":19200,"endMs":19800},{"text":"slow ","startMs":19900,"endMs":20500},{"text":"breath ","startMs":20700,"endMs":21400},{"text":"at a time","startMs":21500,"endMs":22200}]},
+    {"startMs": 23000, "endMs": 28000, "text": "遠くの灯りが、静かに揺れる", "translation": "远处的灯光，静静摇曳", "words": []},
+    {"startMs": 28500, "endMs": 33000, "text": "下一段旅程，就从这里开始", "translation": "",
+      "words": [{"text":"下一段","startMs":28500,"endMs":29800},{"text":"旅程，","startMs":30000,"endMs":30700},{"text":"就从","startMs":30900,"endMs":31500},{"text":"这里","startMs":31600,"endMs":32200},{"text":"开始","startMs":32300,"endMs":32900}]}
+  ]
+}
