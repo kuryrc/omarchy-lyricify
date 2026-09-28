@@ -37,11 +37,10 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           global-json-file: global.json
-      - name: Check source provenance is available
-        run: git rev-parse --verify HEAD
       - name: Build, test and package as an unprivileged user
         run: |
           chown -R lyric-ci:lyric-ci "$GITHUB_WORKSPACE"
+          runuser -u lyric-ci -- env HOME=/home/lyric-ci git rev-parse --verify HEAD
           runuser -u lyric-ci -- env HOME=/home/lyric-ci dotnet restore backend/LyricIsland.Backend --locked-mode
           runuser -u lyric-ci -- env HOME=/home/lyric-ci make test-backend
           runuser -u lyric-ci -- env HOME=/home/lyric-ci make package-local
