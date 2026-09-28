@@ -19,7 +19,7 @@ Rendered from the application with original demo lyrics and artwork. [Preview so
 
 ## Install from source
 
-**This is a local release candidate. There is no public binary download or marketplace installation yet.** Source installation currently requires Linux x86_64, an Omarchy desktop with Quickshell, .NET 10 SDK, Python 3 and Make. The installed backend includes its runtime, so it does not need the SDK afterward.
+**This is a local release candidate. There is no public binary download or marketplace installation yet.** Source installation currently requires Linux x86_64, an Omarchy desktop with Quickshell, the .NET SDK specified in [global.json](global.json), Python 3 and Make. The installed backend includes its runtime, so it does not need the SDK afterward.
 
 Run these commands from the repository root in your graphical session:
 
@@ -41,6 +41,7 @@ The development desktop uses Arch Linux x86_64, Omarchy 4.0.3, Hyprland 0.56.2, 
 - Spotify desktop 1.2.96.518 is used for playback integration. Playback timing after seeking has not met the synchronization target; precise alignment with audible output is still being investigated.
 - Track and lyric recovery after restarting Spotify or resuming from sleep has not been fully verified.
 - Continuous ten-minute animation performance, actual frame presentation and physical display changes remain unverified.
+- The application launcher's “Launching Lyric Island” message can remain visible until its timeout even after the island opens. The shell does not treat the plugin's layer surface as a normal application window.
 - mpv 0.41.0 with mpv-mpris 1.2 has been checked for playback, pause, seek and exit detection. Its native island UI and audio output have not been checked. Other MPRIS players may work but are not certified.
 
 The plugin follows the session reported by the local player. It does not discover or switch Spotify Connect output devices. Browser-specific integration, automatic translation and Japanese romanization are outside the current scope.

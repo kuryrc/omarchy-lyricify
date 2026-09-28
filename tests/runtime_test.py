@@ -5,11 +5,14 @@ import json
 import os
 from pathlib import Path
 import shutil
+import ssl
 import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,10 +81,64 @@ class RuntimeTest(unittest.TestCase):
         manager.state.parent.mkdir(parents=True)
         original = '{"schemaVersion":1,"downloadConsent":false}'
         manager.state.write_text(original)
-        with patch("urllib.request.urlopen", side_effect=OSError("interrupted")):
+        with patch("urllib.request.OpenerDirector.open", side_effect=OSError("interrupted")):
             with self.assertRaises(OSError): manager.install(consent=True)
         self.assertEqual(manager.state.read_text(), original)
         self.assertEqual(list((manager.data / "runtimes").iterdir()), [])
+
+    def test_download_redirects_require_https_on_every_hop(self):
+        manager, package = self.fixture(data=b"\x7fELF\x02\x01" + b"\0" * 12 + b"\x3e\x00")
+        subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+                        "-keyout", str(self.root / "key.pem"), "-out", str(self.root / "cert.pem"),
+                        "-days", "1", "-subj", "/CN=127.0.0.1", "-addext", "subjectAltName=IP:127.0.0.1"],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        requests = []
+        archive = package.read_bytes()
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args): pass
+
+            def do_GET(self):
+                secure = isinstance(self.connection, ssl.SSLSocket)
+                requests.append(("https" if secure else "http", self.path))
+                if self.path == "/archive":
+                    self.send_response(200)
+                    self.send_header("Content-Length", str(len(archive)))
+                    self.end_headers(); self.wfile.write(archive)
+                    return
+                # /downgrade tests the final URL, /bounce hides HTTP between TLS hops.
+                target = (f"http://127.0.0.1:{plain.server_port}/archive" if self.path == "/downgrade"
+                          else f"http://127.0.0.1:{plain.server_port}/middle" if self.path == "/bounce"
+                          else f"https://127.0.0.1:{tls.server_port}/archive")
+                self.send_response(302); self.send_header("Location", target); self.end_headers()
+
+        plain = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        tls = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(self.root / "cert.pem", self.root / "key.pem")
+        tls.socket = context.wrap_socket(tls.socket, server_side=True)
+        client = ssl.create_default_context(cafile=str(self.root / "cert.pem"))
+        threads = [threading.Thread(target=s.serve_forever, daemon=True) for s in (plain, tls)]
+        for thread in threads: thread.start()
+        try:
+            with patch("ssl._create_default_https_context", return_value=client), \
+                    patch("urllib.request.getproxies", return_value={}), patch.object(manager, "handshake"):
+                for route in ("/downgrade", "/bounce"):
+                    with self.subTest(route=route):
+                        requests.clear()
+                        manager.manifest["targets"]["linux-x64"]["url"] = f"https://127.0.0.1:{tls.server_port}{route}"
+                        with self.assertRaisesRegex(RuntimeErrorCode, "insecure_redirect"):
+                            manager.install(consent=True)
+                        self.assertEqual(requests, [("https", route)])
+                        self.assertFalse(manager.state.exists())
+                        self.assertEqual(list((manager.data / "runtimes").iterdir()), [])
+                requests.clear()
+                manager.manifest["targets"]["linux-x64"]["url"] = f"https://127.0.0.1:{tls.server_port}/safe"
+                self.assertEqual(manager.install(consent=True)["status"], "ready")
+                self.assertEqual(requests, [("https", "/safe"), ("https", "/archive")])
+        finally:
+            for server in (plain, tls): server.shutdown(); server.server_close()
+            for thread in threads: thread.join(timeout=2)
 
     def test_purge_requires_confirmation_and_keeps_other_data(self):
         manager, _ = self.fixture()

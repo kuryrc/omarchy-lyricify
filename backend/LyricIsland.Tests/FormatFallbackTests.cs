@@ -34,6 +34,16 @@ static class FormatFallbackTests
             catch (RequestError) { rejected = true; }
             Check(rejected, "Unusable formats must never generate invented lyric timing");
         }
+        // Small LRC input may repeat one large string at many timestamps. Exercise
+        // the public parser and bound allocations, not just its eventual error code.
+        var repeated = string.Concat(Enumerable.Range(0, 100).Select(i => $"[{i / 60:00}:{i % 60:00}]")) + new string('x', 300000);
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        bool expansionRejected = false;
+        try { HelperFormats.Parse(repeated, "lrc", track with { DurationMs = 120000 }, "fixture"); }
+        catch (RequestError error) when (error.Code == "document_too_large") { expansionRejected = true; }
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Check(expansionRejected, "Repeated timestamps must respect the serialized document limit");
+        Check(allocated < 16000000, $"Expanded lyrics must be rejected before large allocation: {allocated} bytes");
         return passed;
     }
 }

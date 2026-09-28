@@ -172,6 +172,19 @@ class IntegrationTest(unittest.TestCase):
         self.assertEqual(state["payload"]["lyrics"]["documentId"], doc)
         self.assertEqual(state["payload"]["lyrics"]["offsetMs"], 100)
 
+    def test_expanded_import_keeps_current_lyrics_and_playback(self):
+        self.control.Configure('{"duration":120000}')
+        self.client.state(lambda s: s["track"]["durationMs"] == 120000)
+        selected = self.client.call("lyrics.import", {"text": "[00:00]Original fixture"})
+        self.assertTrue(selected["ok"], selected)
+        repeated = "".join(f"[{i // 60:02}:{i % 60:02}]" for i in range(100)) + "x" * 300000
+        rejected = self.client.call("lyrics.import", {"text": repeated})
+        self.assertEqual(rejected["error"]["code"], "document_too_large")
+        current = self.client.call("session.resync")["result"]["snapshot"]["lyrics"]
+        self.assertEqual(current["documentId"], selected["result"]["documentId"])
+        self.assertTrue(self.client.call("playback.play")["ok"])
+        self.client.state(lambda s: s["playback"]["status"] == "Playing")
+
     def test_lrc_parser_cases_through_import(self):
         self.control.Configure('{"duration":10000}')
         self.client.state(lambda s: s["track"]["durationMs"] == 10000)

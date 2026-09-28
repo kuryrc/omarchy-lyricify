@@ -13,24 +13,28 @@ artifacts.mkdir(exist_ok=True)
 project = root / "backend/LyricIsland.Backend"
 subprocess.run(["python3", str(root / "scripts/release-metadata.py"), "--check"], check=True)
 release_version = (root / "VERSION").read_text().strip()
-subprocess.run(["dotnet", "restore", str(project), "-r", "linux-x64", "--nologo"], check=True)
+sdk_version = subprocess.check_output(["dotnet", "--version"], cwd=root, text=True).strip()
+subprocess.run(["dotnet", "restore", str(project), "-r", "linux-x64", "--locked-mode", "--nologo"], cwd=root, check=True)
 inputs = {}
 for path in sorted(project.rglob("*")):
     if path.is_file() and not {"bin", "obj"}.intersection(path.relative_to(project).parts) and path.suffix in (".cs", ".csproj", ".xml", ".json"):
         inputs[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
+packaging_inputs = [root / name for name in ("VERSION", "global.json", "scripts/package-local.py", "LICENSE", "NOTICE", "THIRD_PARTY.md")]
+for path in packaging_inputs + list((root / "licenses").rglob("*")) + [project / "Lyrics/UpstreamMatching/README.md"]:
+    if path.is_file(): inputs[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
 revision = subprocess.run(["git", "rev-parse", "--verify", "HEAD"], cwd=root, capture_output=True, text=True)
 # A commit identifies the binary only when its build inputs are committed.
 # Local experiments still get an input digest, but must not claim HEAD as source.
 changes = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--",
-                          "backend/LyricIsland.Backend", "VERSION"], cwd=root, capture_output=True, text=True)
+                          "backend/LyricIsland.Backend", "licenses", *[str(p.relative_to(root)) for p in packaging_inputs]],
+                         cwd=root, capture_output=True, text=True)
 source_commit = revision.stdout.strip() if revision.returncode == 0 and changes.returncode == 0 and not changes.stdout else None
-inputs["VERSION"] = hashlib.sha256((root / "VERSION").read_bytes()).hexdigest()
 source_hash = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
 manifest = {"manifestVersion": 1, "backendVersion": release_version, "backendSourceCommit": source_commit,
             "backendSourceSha256": source_hash, "supportedProtocols": [2], "targets": {}}
 with tempfile.TemporaryDirectory(prefix="runtime-build-", dir=artifacts) as temporary:
     bundle = Path(temporary) / "bundle"
-    subprocess.run(["dotnet", "publish", str(project), "--no-restore", "-r", "linux-x64", "--self-contained", "true", "-c", "Release", "-o", str(bundle), "--nologo"], check=True)
+    subprocess.run(["dotnet", "publish", str(project), "--no-restore", "-r", "linux-x64", "--self-contained", "true", "-c", "Release", "-o", str(bundle), "--nologo"], cwd=root, check=True)
     if list(bundle.glob("*Chinese*")) or list(bundle.glob("*CHTCHS*")):
         raise SystemExit("Unexpected Chinese conversion dependency in artifact")
     shutil.copytree(root / "licenses", bundle / "licenses")
@@ -43,13 +47,13 @@ with tempfile.TemporaryDirectory(prefix="runtime-build-", dir=artifacts) as temp
     # The framework version selects the exact restored runtime license material.
     runtime_config = json.loads((bundle / "LyricIsland.Backend.runtimeconfig.json").read_text())
     version = next(f["version"] for f in runtime_config["runtimeOptions"]["includedFrameworks"] if f["name"] == "Microsoft.NETCore.App")
-    package_cache = Path(subprocess.check_output(["dotnet", "nuget", "locals", "global-packages", "--list"], text=True).strip().split(": ", 1)[1])
+    package_cache = Path(subprocess.check_output(["dotnet", "nuget", "locals", "global-packages", "--list"], cwd=root, text=True).strip().split(": ", 1)[1])
     runtime_package = package_cache / "microsoft.netcore.app.runtime.linux-x64" / version
     license_files = [p for p in runtime_package.iterdir() if p.is_file() and ("license" in p.name.lower() or "notice" in p.name.lower())]
     if not license_files: raise SystemExit("Runtime license material missing")
     for path in license_files: shutil.copy2(path, bundle / "licenses" / ("dotnet-" + path.name))
     provenance = {"candidateOnly": True, "sourceCommit": manifest["backendSourceCommit"], "sourceSha256": source_hash,
-                  "runtimeVersion": version, "inputs": inputs}
+                  "sdkVersion": sdk_version, "runtimeVersion": version, "inputs": inputs}
     (bundle / "build-provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
     shutil.copy2(project / "packages.lock.json", bundle / "packages.lock.json")
     archive = artifacts / f"lyric-island-{release_version}-linux-x64.tar.gz"

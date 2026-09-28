@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Lyricify.Lyrics.Helper": {
+        "type": "Transitive",
+        "resolved": "0.2.0",
+        "contentHash": "5A+BXQ3WxHKztuQcA/pGFXtjBDTVXIS2rfMHKvU/vvBekDJVeAThm9ShJr2l3qWVDaQdXysHDbx0mBo7+gzBgA==",
+        "dependencies": {
+          "CHTCHSConv": "1.0.0",
+          "Newtonsoft.Json": "13.0.3",
+          "SharpZipLib": "1.4.2"
+        }
+      },
+      "Newtonsoft.Json": {
+        "type": "Transitive",
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+      },
+      "SharpZipLib": {
+        "type": "Transitive",
+        "resolved": "1.4.2",
+        "contentHash": "yjj+3zgz8zgXpiiC3ZdF/iyTBbz2fFvMxZFEBPUcwZjIvXOf37Ylm+K58hqMfIBt5JgU/Z2uoUS67JmTLe973A=="
+      },
+      "Tmds.DBus.Protocol": {
+        "type": "Transitive",
+        "resolved": "0.95.1",
+        "contentHash": "IbGhqZAqqgB/DkT70+lAk4MNv95tZtsTMFQ+S3uGy0aTfOkGVeFjeNJsX8dBI/3+CPnO5XW6lRQKGeFEgHElKw=="
+      },
+      "lyricisland.backend": {
+        "type": "Project",
+        "dependencies": {
+          "Lyricify.Lyrics.Helper": "[0.2.0, 0.2.0]",
+          "Tmds.DBus.Protocol": "[0.95.1, 0.95.1]"
+        }
+      }
+    }
+  }
+}

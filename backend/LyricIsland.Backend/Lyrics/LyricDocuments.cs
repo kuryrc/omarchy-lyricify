@@ -96,7 +96,30 @@ public sealed class LyricDocuments(LocalStore store)
                 throw new RequestError("invalid_lyrics", "Word text does not match line.");
             end = line.EndMs;
         }
-        if (JsonSerializer.SerializeToUtf8Bytes(document, LocalStore.Json).Length > 900000)
-            throw new RequestError("document_too_large", "Lyric document exceeds protocol limit.");
+        // Repeated LRC timestamps can expand small input into a large JSON document.
+        // Count streamed output and stop before allocating the complete expansion.
+        using var budget = new DocumentSizeStream();
+        JsonSerializer.Serialize(budget, document, LocalStore.Json);
+    }
+
+    sealed class DocumentSizeStream : Stream
+    {
+        long written;
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => written;
+        public override long Position { get => written; set => throw new NotSupportedException(); }
+        public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            if (buffer.Length > 900000 - written)
+                throw new RequestError("document_too_large", "Lyric document exceeds protocol limit.");
+            written += buffer.Length;
+        }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
     }
 }

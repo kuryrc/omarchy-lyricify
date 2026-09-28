@@ -22,11 +22,13 @@ This builds a self-contained Linux x86_64 backend, verifies activation without a
 Check the candidate before using it:
 
 - The manifest's version, byte size and SHA-256 match the archive. A version change clears old targets; rebuild instead of relabeling an archive.
-- The provenance records the backend source commit and input hashes. `backendSourceCommit` is null when those build inputs are uncommitted; commit them and rebuild for a release candidate.
+- The provenance records the backend source commit, SDK/runtime versions and hashes of source, build configuration, packaging script and bundled notices. `backendSourceCommit` is null when those inputs are uncommitted; commit them and rebuild for a release candidate.
 - The package carries the dependency lock file, LICENSE, NOTICE, third-party licenses, Helper modification notes and the actual bundled .NET notices. Review [THIRD_PARTY](../THIRD_PARTY.md) whenever dependencies or runtime versions change.
 - Record the commands, build identity and results in the release PR or CI artifacts. Local measurements belong in ignored `artifacts/`; keep user-facing limitations in the README.
 
 Commit the generated manifest separately if necessary. Its source commit identifies the backend inputs, which must remain unchanged when adding documentation or the download URL. Local candidate manifests may have a null URL. None of the `make` commands upload, push, tag or submit anything.
+
+Keep the source commit reachable after building. Amending an author or squashing history changes its SHA even when the files are identical; rebuild after such changes rather than relabeling an existing archive.
 
 ## Validate installation
 
@@ -49,6 +51,8 @@ Publication requires maintainer authorization. The local build commands do not g
 5. Submit the exact reviewed commit to the [community marketplace](https://plugins.omarchy.org/publish.html), following its current [submission rules](https://github.com/omacom/omarchy-plugin-marketplace/blob/main/SUBMISSION.md). Include the installation instructions, dependencies, license scope, privacy behavior and preview. Automated validation and maintainer approval are separate steps.
 
 The root `preview.png` is shared by the README and marketplace submission; generate it with `make previews`. Check marketplace requirements again before submitting. The repository's [CI workflow](../.github/workflows/check.yml) runs portable build, test and package checks without an upload step. Quickshell/Wayland checks run on Omarchy.
+
+Freeze the final release commit after filling the download manifest. CI, the tag's target commit, default-branch HEAD, marketplace validation and the security baseline must refer to that exact SHA. The backend source commit can precede this final metadata commit if its recorded inputs still match. Do not amend or push another commit while review is pending; even documentation changes require fresh marketplace validation. Marketplace submission uses its Issue form, not a pull request to the catalog.
 
 ## Update and rollback
 

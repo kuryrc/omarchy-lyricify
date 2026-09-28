@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class RuntimeErrorCode(Exception):
     pass
+
+
+class HttpsRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Reject a downgrade before contacting its target, including intermediate hops.
+        if urllib.parse.urlsplit(newurl).scheme.lower() != "https":
+            raise RuntimeErrorCode("insecure_redirect")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def atomic_json(path, value):
@@ -93,7 +102,8 @@ class RuntimeManager:
                 url = target.get("url", "")
                 if not isinstance(url, str) or not url.startswith("https://"): raise RuntimeErrorCode("release_not_available")
                 request = urllib.request.Request(url, headers={"User-Agent": "LyricIsland/" + self.manifest["backendVersion"]})
-                with urllib.request.urlopen(request, timeout=20) as response, package.open("wb") as out:
+                opener = urllib.request.build_opener(HttpsRedirectHandler())
+                with opener.open(request, timeout=20) as response, package.open("wb") as out:
                     if not response.url.startswith("https://"): raise RuntimeErrorCode("insecure_redirect")
                     total = 0
                     while chunk := response.read(65536):

@@ -4,7 +4,7 @@ The [README](README.md) covers installation, behavior and known limitations. Use
 
 ## Build and verify
 
-Development needs .NET 10 SDK, Python 3, Make, Node, session D-Bus and the Python dbus/PyGObject modules. UI checks also need Omarchy, Quickshell, Qt Quick and Qt Test; package checks need Linux x86_64 and bubblewrap. The SDK version used by CI is declared in [the workflow](.github/workflows/check.yml).
+Development needs the .NET SDK specified in [global.json](global.json), Python 3, Make, Node, OpenSSL, session D-Bus and the Python dbus/PyGObject modules. UI checks also need Omarchy, Quickshell, Qt Quick and Qt Test; package checks need Linux x86_64 and bubblewrap. The installed plugin does not need an SDK.
 
 From the repository root:
 
@@ -16,6 +16,10 @@ make verify-package # Build candidate; verify notices, SDK-hidden startup, rollb
 ```
 
 Tests use temporary XDG directories and isolated D-Bus services. Keep controlled-player tests off your real Spotify bus. GUI checks use offscreen windows where possible; real Wayland behavior and audio synchronization require separate checks. The [test guide](docs/testing.md) lists coverage and measurement methods.
+
+CI pins Actions to full commits, the Ubuntu container to a digest, and apt packages to a dated archive snapshot with signature checks enabled. Only CA-certificate bootstrap uses HTTP; subsequent package downloads use HTTPS. There is no rolling-mirror fallback. Tests run as an unprivileged user so file-permission checks remain meaningful. Local builds and CI use the same exact SDK and locked NuGet dependencies; the backend project also pins its bundled runtime version.
+
+Update these build dependencies deliberately: change the workflow pins, SDK or runtime version as appropriate, then restore both projects with `-p:RestoreLockedMode=false` if their dependencies changed. Review and commit the resulting lockfiles. Run `make check` and rebuild/verify the self-contained package before publishing a dependency update. A newer system SDK does not update an installed self-contained backend.
 
 `test.qml` is the root test entry. Quickshell refuses imports outside its configuration scanner root, so this wrapper must stay at the repository root. Assertions live under `tests/`; `LYRIC_ISLAND_TEST_SUITE` selects the suite. `shell.qml` and `live.qml` start developer previews.
 
